@@ -12,6 +12,17 @@ from tensorflow.python.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxP
 from collections import defaultdict
 
 
+"""
+DESCRIPTION
+
+We are about to use downloaded dataset for training. Network that will be trained will be defined from scratch, 
+so we can se construction of the network and its visualization. Everything is from scratch, therefore it is an 
+ideal example and everything can be tested
+"""
+
+
+
+
 input_folder_name = r"./input_data/zip_kagglecatsanddogs_5340/PetImages"
 output_folder = r"./01_image_classification_from_scratch/outputs"
 

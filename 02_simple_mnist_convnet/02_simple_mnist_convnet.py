@@ -4,6 +4,14 @@ from keras import layers
 import visualkeras
 import os
 
+"""
+DESCRIPTION
+
+We are about to use downloaded dataset for training. Network that will be trained will be defined from scratch, 
+so we can se construction of the network and its visualization. Difference is that, dataset is a bit preprocessed and smaall. 
+Network is similar. Its very small as there is no need for huge network, so training is very quick. 
+"""
+
 # Define variables 
 output_folder = r"./02_simple_mnist_convnet/outputs"
 
