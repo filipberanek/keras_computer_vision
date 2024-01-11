@@ -7,7 +7,6 @@ from keras import layers
 import tensorflow as tf
 import numpy as np
 import random
-import visualkeras
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -43,7 +42,7 @@ weight_decay = 0.0001
 batch_size = 5
 num_epochs = 10  # For real training, use num_epochs=100. 10 is a test value
 image_size = 72  # We'll resize input images to this size
-patch_size = 6  # Size of the patches to be extract from the input images
+patch_size = 6 # Size of the patches to be extract from the input images
 num_patches = (image_size // patch_size) ** 2
 projection_dim = 64
 num_heads = 4
