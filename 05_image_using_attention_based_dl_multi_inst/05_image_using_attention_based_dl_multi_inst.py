@@ -1,11 +1,13 @@
+
+from matplotlib import pyplot as plt
+
+plt.style.use('ggplot' )
+
 import numpy as np
 import tensorflow as tf
 import keras
 from keras import layers
 from tqdm import tqdm
-from matplotlib import pyplot as plt
-
-plt.style.use("ggplot")
 
 POSITIVE_CLASS = 1
 BAG_COUNT = 1000
@@ -136,6 +138,7 @@ class MILAttentionLayer(layers.Layer):
         self.input_built = True
 
     def call(self, inputs):
+        print(inputs)
         # Assigning variables from the number of inputs.
         instances = [self.compute_attention_scores(instance) for instance in inputs]
 
@@ -143,7 +146,7 @@ class MILAttentionLayer(layers.Layer):
         instances = tf.stack(instances)
 
         # Apply softmax over instances such that the output summation is equal to 1.
-        alpha = tf.softmax(instances, axis=0)
+        alpha = tf.nn.softmax(instances, axis=0)
 
         # Split to recreate the same array of tensors we had as inputs.
         return [alpha[i] for i in range(alpha.shape[0])]
@@ -153,15 +156,18 @@ class MILAttentionLayer(layers.Layer):
         original_instance = instance
 
         # tanh(v*h_k^T)
+        print(f"self.v_weight_params {self.v_weight_params}")
         instance = tf.tanh(tf.tensordot(instance, self.v_weight_params, axes=1))
 
         # for learning non-linear relations efficiently.
         if self.use_gated:
-            instance = instance * ops.sigmoid(
+            print(f"self.u_weight_params {self.u_weight_params}")
+            instance = instance * tf.sigmoid(
                 tf.tensordot(original_instance, self.u_weight_params, axes=1)
             )
 
         # w^T*(tanh(v*h_k^T)) / w^T*(tanh(v*h_k^T)*sigmoid(u*h_k^T))
+        print(f"self.w_weight_params {self.w_weight_params.value}")
         return tf.tensordot(instance, self.w_weight_params, axes=1)
 
 def plot(data, labels, bag_class, predictions=None, attention_weights=None):
@@ -327,6 +333,28 @@ trained_models = [
     for model in tqdm(models)
 ]
 
+alpha_weights = models[0].layers[8].get_weights()
+v_weight = alpha_weights[0]
+w_weight = alpha_weights[1]
+u_weight = alpha_weights[2]
+
+
+def compute_attention_scores( instance):
+    # Reserve in-case "gated mechanism" used.
+    original_instance = instance
+
+    # tanh(v*h_k^T)
+    instance = tf.tanh(tf.tensordot(instance, v_weight, axes=1))
+
+    # for learning non-linear relations efficiently.
+    instance = instance * tf.sigmoid(
+        tf.tensordot(original_instance, u_weight, axes=1)
+    )
+
+    # w^T*(tanh(v*h_k^T)) / w^T*(tanh(v*h_k^T)*sigmoid(u*h_k^T))
+    return tf.tensordot(instance, w_weight, axes=1)
+
+
 def predict(data, labels, trained_models):
     # Collect info per model.
     models_predictions = []
@@ -337,9 +365,27 @@ def predict(data, labels, trained_models):
     for model in trained_models:
         # Predict output classes on data.
         predictions = model.predict(data)
+        
         models_predictions.append(predictions)
 
         # Create intermediate model to get MIL attention layer weights.
+        pre_mil_model = keras.Model(model.input, model.get_layer("dense_1").output)
+
+        # Predict pre MIL
+        pre_mil_predictions = pre_mil_model.predict(data)
+
+        instances = [compute_attention_scores(instance) for instance in pre_mil_predictions]
+
+        # Stack instances into a single tensor.
+        instances = tf.stack(instances)
+
+        # Apply softmax over instances such that the output summation is equal to 1.
+        alpha = tf.nn.softmax(instances, axis=0)
+
+        # Split to recreate the same array of tensors we had as inputs.
+        mil_outputs = [alpha[i] for i in range(alpha.shape[0])]
+
+        # Pre MIL predictions
         intermediate_model = keras.Model(model.input, model.get_layer("alpha").output)
 
         # Predict MIL attention layer weights.
@@ -374,6 +420,7 @@ plot(
     predictions=class_predictions,
     attention_weights=attention_params,
 )
+print()
 plot(
     val_data,
     val_labels,
